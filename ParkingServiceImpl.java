@@ -1,61 +1,89 @@
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
-// UNIT 3: Distributed Objects - This is the actual object instance
-public class ParkingServiceImpl extends UnicastRemoteObject implements ParkingService {
+public class ParkingServiceImpl extends UnicastRemoteObject implements ParkingInterface {
 
-    // Thread-safe map for slot management (Consistency)
-    private Map<String, String> parkingSlots;
-    private static final String SECURITY_TOKEN = "DIST-PARK-SECURE-2024";
+    // Data Store: Map<ZoneID, Map<SlotID, Status>>
+    private final Map<String, Map<String, String>> zones;
+    private static final String AUTH_TOKEN = "DIST-PARK-SECURE-2024";
 
-    // Constructor must throw RemoteException because of UnicastRemoteObject
-    public ParkingServiceImpl() throws RemoteException {
+    // Logger to send messages to the GUI
+    private final Consumer<String> logger;
+
+    public ParkingServiceImpl(Consumer<String> logger) throws RemoteException {
         super();
-        parkingSlots = new ConcurrentHashMap<>();
+        this.logger = logger;
+        zones = new ConcurrentHashMap<>();
 
-        // Initializing slots
-        parkingSlots.put("A1", "Available");
-        parkingSlots.put("A2", "Available");
-        parkingSlots.put("B1", "Available");
-        parkingSlots.put("B2", "Available");
-        parkingSlots.put("C1", "Available");
+        // Initialize Zone A
+        Map<String, String> zoneA = new ConcurrentHashMap<>();
+        zoneA.put("A1", "Available");
+        zoneA.put("A2", "Available");
+        zoneA.put("A3", "Available");
+        zones.put("ZoneA", zoneA);
+
+        // Initialize Zone B
+        Map<String, String> zoneB = new ConcurrentHashMap<>();
+        zoneB.put("B1", "Available");
+        zoneB.put("B2", "Available");
+        zoneB.put("B3", "Available");
+        zones.put("ZoneB", zoneB);
+
+        logger.accept(">>> Backend Initialized: Zones A & B created.");
     }
 
     @Override
-    public Map<String, String> getAllSlots() throws RemoteException {
-        return parkingSlots;
+    public Map<String, String> getZoneStatus(String zoneId) throws RemoteException {
+        return zones.getOrDefault(zoneId, new HashMap<>());
     }
 
-    // UNIT 2: Mutual Exclusion (synchronized keyword)
     @Override
-    public synchronized String bookSlot(String slotId, String authToken) throws RemoteException {
-        // Authentication Check
-        if (!SECURITY_TOKEN.equals(authToken)) {
-            System.out.println("[ALERT] Unauthorized access attempt blocked.");
-            return "ERROR: Invalid Authentication Token";
-        }
+    public synchronized String bookSlot(String zoneId, String slotId, String vehicleNumber, String authToken)
+            throws RemoteException {
+        if (!AUTH_TOKEN.equals(authToken))
+            return "Auth Failed";
 
-        if (!parkingSlots.containsKey(slotId)) {
-            return "ERROR: Slot ID not found";
-        }
+        Map<String, String> zone = zones.get(zoneId);
+        if (zone == null)
+            return "Invalid Zone";
 
-        String currentStatus = parkingSlots.get(slotId);
-
-        // Check availability
+        String currentStatus = zone.get(slotId);
         if ("Available".equals(currentStatus)) {
-            parkingSlots.put(slotId, "Occupied");
-            System.out.println("[LOG] Slot " + slotId + " successfully booked.");
-            return "SUCCESS: Slot " + slotId + " reserved.";
-        } else {
-            System.out.println("[LOG] Conflict detected for slot " + slotId);
-            return "CONFLICT: Slot " + slotId + " is already occupied.";
+            zone.put(slotId, "Occupied: " + vehicleNumber);
+            logger.accept("BOOKING: [" + zoneId + "] Slot " + slotId + " reserved for " + vehicleNumber);
+            return "Success";
         }
+        return "Conflict: Already Booked";
     }
 
     @Override
-    public boolean isAlive() throws RemoteException {
-        return true;
+    public synchronized String releaseSlot(String zoneId, String slotId, String authToken) throws RemoteException {
+        if (!AUTH_TOKEN.equals(authToken))
+            return "Auth Failed";
+
+        Map<String, String> zone = zones.get(zoneId);
+        if (zone != null && zone.containsKey(slotId)) {
+            zone.put(slotId, "Available");
+            logger.accept("RELEASE: [" + zoneId + "] Slot " + slotId + " is now free.");
+            return "Success";
+        }
+        return "Error";
+    }
+
+    @Override
+    public String findAnyFreeSlot() throws RemoteException {
+        logger.accept("QUERY: Searching all zones for free space...");
+        for (String zKey : zones.keySet()) {
+            for (Map.Entry<String, String> entry : zones.get(zKey).entrySet()) {
+                if ("Available".equals(entry.getValue())) {
+                    return "Suggestion: " + entry.getKey() + " in " + zKey;
+                }
+            }
+        }
+        return "System Full";
     }
 }
