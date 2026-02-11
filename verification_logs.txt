@@ -1,0 +1,7 @@
+[2026-02-11 07:27:18] [ADMIN] Registered 5 new codes: PROD1...
+[2026-02-11 07:27:18] [SYSTEM] Service Initialized.
+[2026-02-11 07:27:49] [VERIFY] ID: PROD1 | Loc: New York (Store A) | Result: SUCCESS: AUTHENTIC
+[2026-02-11 07:27:57] [VERIFY] ID: PROD1 | Loc: New York (Store A) | Result: WARN: DOUBLE SCAN
+[2026-02-11 07:28:01] [VERIFY] ID: PROD1 | Loc: New York (Store A) | Result: WARN: DOUBLE SCAN
+[2026-02-11 07:28:02] [VERIFY] ID: PROD1 | Loc: New York (Store A) | Result: WARN: DOUBLE SCAN
+[2026-02-11 07:28:05] [VERIFY] ID: PROD1 | Loc: London (Warehouse) | Result: FRAUD: CLONED TAG (Scanned in New York (Store A) & London (Warehouse))
