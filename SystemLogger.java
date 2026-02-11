@@ -11,8 +11,10 @@ public class SystemLogger {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String entry = String.format("[%s] [%s] %s", timestamp, type, message);
 
+        // Print to Console
         System.out.println(entry);
 
+        // Write to File
         try (FileWriter fw = new FileWriter(LOG_FILE, true);
                 PrintWriter pw = new PrintWriter(fw)) {
             pw.println(entry);

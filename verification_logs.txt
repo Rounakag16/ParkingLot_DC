@@ -5,3 +5,7 @@
 [2026-02-11 07:28:01] [VERIFY] ID: PROD1 | Loc: New York (Store A) | Result: WARN: DOUBLE SCAN
 [2026-02-11 07:28:02] [VERIFY] ID: PROD1 | Loc: New York (Store A) | Result: WARN: DOUBLE SCAN
 [2026-02-11 07:28:05] [VERIFY] ID: PROD1 | Loc: London (Warehouse) | Result: FRAUD: CLONED TAG (Scanned in New York (Store A) & London (Warehouse))
+[2026-02-11 07:45:59] [ADMIN] Registered 5 codes: PROD1 to PROD5
+[2026-02-11 07:46:13] [SUCCESS] AUTHENTIC - PROD1 @ Mumbai (Main Warehouse)
+[2026-02-11 07:46:15] [WARNING] DOUBLE SCAN - PROD1 @ Mumbai (Main Warehouse)
+[2026-02-11 07:46:17] [CRITICAL] CLONED TAG (Mumbai (Main Warehouse) -> Bangalore (Tech Park)) - PROD1 @ Bangalore (Tech Park)

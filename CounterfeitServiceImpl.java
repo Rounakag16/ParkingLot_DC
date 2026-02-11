@@ -11,7 +11,7 @@ class ProductState {
 
     public ProductState() {
         this.status = "NEW";
-        this.lastLocation = "Factory (Chennai)"; // Default factory location
+        this.lastLocation = "Factory (Chennai)";
         this.lastScanTime = 0;
     }
 }
@@ -28,7 +28,7 @@ public class CounterfeitServiceImpl extends UnicastRemoteObject implements Count
         this.guiLogger = guiLogger;
         this.productDB = new ConcurrentHashMap<>();
 
-        // FIXED: Initial Seed is now PROD1, PROD2, PROD3, PROD4, PROD5
+        // Initial Seed: PROD1 to PROD5
         registerProductBatch("PROD", 5);
     }
 
@@ -36,7 +36,7 @@ public class CounterfeitServiceImpl extends UnicastRemoteObject implements Count
     public synchronized String verifyProduct(String productID, String location) throws RemoteException {
         stats[0]++; // Increment Total Scans
 
-        // 1. Invalid ID Check (If ID is not PROD1-5, it's Fraud)
+        // 1. Invalid ID Check
         if (!productDB.containsKey(productID)) {
             stats[3]++; // Fraud
             logToTable(productID, location, "INVALID ID", "CRITICAL");
@@ -55,29 +55,35 @@ public class CounterfeitServiceImpl extends UnicastRemoteObject implements Count
             return "AUTHENTIC";
         }
 
-        // 3. Subsequent Scans (Double Scan or Clone)
+        // 3. Subsequent Scans (Logic Fix)
+        // If status is already SCANNED or FLAGGED, we enter this block
         if ("SCANNED".equals(state.status) || "FLAGGED".equals(state.status)) {
 
-            // Geolocation Fraud Check (Impossible Travel)
+            // GEOLOCATION CHECK:
+            // If the new location is DIFFERENT from the last location -> FRAUD (Cloned Tag)
             if (!state.lastLocation.equals(location)) {
                 state.status = "FLAGGED";
-                stats[3]++; // Fraud
+                stats[3]++; // Fraud count
                 String msg = "CLONED TAG (" + state.lastLocation + " -> " + location + ")";
+
                 logToTable(productID, location, msg, "CRITICAL");
                 return "FRAUD: " + msg;
-            } else {
-                stats[2]++; // Warning
+            }
+            // Else, if location is the SAME -> WARNING (Double Scan)
+            else {
+                stats[2]++; // Warning count
                 logToTable(productID, location, "DOUBLE SCAN", "WARNING");
                 return "WARNING: ALREADY SCANNED";
             }
         }
-        return "ERROR";
+
+        return "ERROR: UNKNOWN STATE";
     }
 
     @Override
     public synchronized String registerProductBatch(String prefix, int quantity) throws RemoteException {
         int start = 1;
-        // Find the next available number if prefix exists (simple logic)
+        // Find next available number
         while (productDB.containsKey(prefix + start)) {
             start++;
         }
@@ -85,7 +91,10 @@ public class CounterfeitServiceImpl extends UnicastRemoteObject implements Count
         for (int i = 0; i < quantity; i++) {
             productDB.put(prefix + (start + i), new ProductState());
         }
-        return "Registered " + quantity + " codes: " + prefix + start + " to " + prefix + (start + quantity - 1);
+
+        String msg = "Registered " + quantity + " codes: " + prefix + start + " to " + prefix + (start + quantity - 1);
+        SystemLogger.log("ADMIN", msg); // Log batch creation to file
+        return msg;
     }
 
     @Override
@@ -93,8 +102,15 @@ public class CounterfeitServiceImpl extends UnicastRemoteObject implements Count
         return stats;
     }
 
+    // Helper to log to GUI Table AND Text File
     private void logToTable(String id, String loc, String status, String type) {
         String time = java.time.LocalTime.now().toString().substring(0, 8);
+
+        // 1. Send to Server GUI Table
         guiLogger.accept(new String[] { time, id, loc, status, type });
+
+        // 2. CORRECTION: Save to Text File via SystemLogger
+        // Format: [Type] Status - ID @ Location
+        SystemLogger.log(type, status + " - " + id + " @ " + loc);
     }
 }
