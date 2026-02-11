@@ -1,10 +1,7 @@
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -13,8 +10,6 @@ public class ParkingServiceImpl extends UnicastRemoteObject implements ParkingIn
     private Map<String, Map<String, String>> zones;
     private static final String AUTH_TOKEN = "DIST-PARK-SECURE-2024";
     private final Consumer<String> guiLogger;
-
-    // Replication Configuration
     private boolean isPrimary;
     private String backupServiceUrl;
 
@@ -24,33 +19,69 @@ public class ParkingServiceImpl extends UnicastRemoteObject implements ParkingIn
         this.isPrimary = isPrimary;
         this.zones = new ConcurrentHashMap<>();
 
-        // Initialize Data
-        initZone("ZoneA");
-        initZone("ZoneB");
+        // Initialize 4 Slots per Zone
+        initZone("ZoneA", "A", 4);
+        initZone("ZoneB", "B", 4);
 
         if (isPrimary && backupIp != null && !backupIp.isEmpty()) {
             this.backupServiceUrl = "rmi://" + backupIp + ":1099/ParkingService";
-            startAutomation();
-        } else if (isPrimary) {
-            SystemLogger.log("INFO", "Running in STANDALONE Mode (No Backup IP provided).");
-            startAutomation();
         }
-
         SystemLogger.log("INFO", "Service Started. Role: " + (isPrimary ? "PRIMARY" : "BACKUP"));
     }
 
-    private void initZone(String name) {
+    private void initZone(String zoneName, String prefix, int count) {
         Map<String, String> z = new ConcurrentHashMap<>();
-        z.put(name.substring(name.length() - 1) + "1", "Available");
-        z.put(name.substring(name.length() - 1) + "2", "Available");
-        zones.put(name, z);
+        for (int i = 1; i <= count; i++)
+            z.put(prefix + i, "Available");
+        zones.put(zoneName, z);
     }
 
-    // --- CLIENT METHODS ---
+    // --- HEARTBEAT IMPLEMENTATION ---
+    @Override
+    public boolean isAlive() throws RemoteException {
+        // Simple ping response to prove server is running
+        return true;
+    }
+
+    // --- ADMIN LOGIC ---
+    @Override
+    public synchronized String addZone(String zoneName) throws RemoteException {
+        if (zones.containsKey(zoneName))
+            return "Error: Zone already exists.";
+        zones.put(zoneName, new ConcurrentHashMap<>());
+        guiLogger.accept("ADMIN: Added " + zoneName);
+        SystemLogger.log("ADMIN", "Zone Created: " + zoneName);
+        triggerReplication();
+        return "Success: " + zoneName + " created.";
+    }
 
     @Override
-    public Map<String, String> getZoneStatus(String zoneId) throws RemoteException {
-        return zones.getOrDefault(zoneId, new HashMap<>());
+    public synchronized String addSlot(String zoneName, String slotId) throws RemoteException {
+        if (!zones.containsKey(zoneName))
+            return "Error: Zone '" + zoneName + "' does not exist!";
+        if (zones.get(zoneName).containsKey(slotId))
+            return "Error: Slot " + slotId + " already exists.";
+
+        zones.get(zoneName).put(slotId, "Available");
+        guiLogger.accept("ADMIN: Added Slot " + slotId + " to " + zoneName);
+        SystemLogger.log("ADMIN", "Slot Added: " + slotId);
+        triggerReplication();
+        return "Success: Slot " + slotId + " added.";
+    }
+
+    // --- CLIENT LOGIC ---
+    @Override
+    public String findAnyFreeSlot(String zoneId) throws RemoteException {
+        Map<String, String> z = zones.get(zoneId);
+        if (z == null)
+            return "Invalid Zone";
+        List<String> sortedSlots = new ArrayList<>(z.keySet());
+        sortedSlots.sort(Comparator.comparingInt(String::length).thenComparing(String::compareTo));
+        for (String slotId : sortedSlots) {
+            if ("Available".equals(z.get(slotId)))
+                return slotId;
+        }
+        return "None";
     }
 
     @Override
@@ -58,19 +89,15 @@ public class ParkingServiceImpl extends UnicastRemoteObject implements ParkingIn
             throws RemoteException {
         if (!AUTH_TOKEN.equals(authToken))
             return "Auth Failed";
-
         Map<String, String> zone = zones.get(zoneId);
         if (zone != null && "Available".equals(zone.get(slotId))) {
             zone.put(slotId, "Occupied: " + vehicleNumber);
-
-            guiLogger.accept("BOOKING: " + slotId + " -> " + vehicleNumber);
+            guiLogger.accept("BOOKING: [" + zoneId + "] " + slotId + " -> " + vehicleNumber);
             SystemLogger.log("TRANSACTION", "Booked " + slotId + " (" + zoneId + ") for " + vehicleNumber);
-
-            // Try to replicate, but don't fail if backup is missing
             triggerReplication();
             return "Success";
         }
-        return "Conflict";
+        return "Conflict: Slot occupied or invalid.";
     }
 
     @Override
@@ -78,59 +105,40 @@ public class ParkingServiceImpl extends UnicastRemoteObject implements ParkingIn
         Map<String, String> zone = zones.get(zoneId);
         if (zone != null && zone.containsKey(slotId)) {
             zone.put(slotId, "Available");
-
-            guiLogger.accept("RELEASE: " + slotId);
+            guiLogger.accept("RELEASE: [" + zoneId + "] " + slotId);
             SystemLogger.log("TRANSACTION", "Released " + slotId + " (" + zoneId + ")");
-
             triggerReplication();
             return "Success";
         }
         return "Error";
     }
 
+    // --- SYSTEM METHODS ---
     @Override
-    public String findAnyFreeSlot() throws RemoteException {
-        return "Checking " + zones.keySet().size() + " zones...";
+    public Set<String> getZoneList() throws RemoteException {
+        return zones.keySet();
     }
 
     @Override
-    public boolean isAlive() throws RemoteException {
-        return true;
+    public Map<String, String> getZoneStatus(String zoneId) throws RemoteException {
+        return zones.getOrDefault(zoneId, new HashMap<>());
     }
-
-    // --- REPLICATION LOGIC (SAFE MODE) ---
 
     private void triggerReplication() {
-        // If we are Backup, or if no Backup IP was configured, do nothing.
         if (!isPrimary || backupServiceUrl == null)
             return;
-
         new Thread(() -> {
             try {
                 ParkingInterface backup = (ParkingInterface) Naming.lookup(backupServiceUrl);
                 backup.syncState(this.zones);
-                SystemLogger.log("SYNC", "Data pushed to Backup Server.");
             } catch (Exception e) {
-                // SILENT FAIL: If backup is down, just log it. Do not crash.
-                SystemLogger.log("WARN", "Backup Unreachable. Continuing in Standalone Mode.");
-            }
+                /* Ignore */ }
         }).start();
     }
 
     @Override
     public void syncState(Map<String, Map<String, String>> masterData) throws RemoteException {
         this.zones = new ConcurrentHashMap<>(masterData);
-        guiLogger.accept("REPLICA: State synchronized with Primary.");
-    }
-
-    // --- AUTOMATION ---
-    private void startAutomation() {
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                SystemLogger.log("AUTO", "System Health Scan: OK.");
-            }
-        }, 10000, 60000); // Scan every 60 seconds
+        guiLogger.accept("REPLICA: Synced with Primary.");
     }
 }

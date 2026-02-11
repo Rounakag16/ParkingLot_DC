@@ -1,18 +1,28 @@
-[2026-02-11 06:17:06] [INFO] Service Started. Role: PRIMARY
-[2026-02-11 06:17:16] [AUTO] System Health Scan: OK. Memory Usage: Normal.
-[2026-02-11 06:17:46] [AUTO] System Health Scan: OK. Memory Usage: Normal.
-[2026-02-11 06:18:16] [AUTO] System Health Scan: OK. Memory Usage: Normal.
-[2026-02-11 06:18:56] [INFO] Service Started. Role: PRIMARY
-[2026-02-11 06:19:06] [AUTO] System Health Scan: OK. Memory Usage: Normal.
-[2026-02-11 06:19:36] [AUTO] System Health Scan: OK. Memory Usage: Normal.
-[2026-02-11 06:19:47] [INFO] Service Started. Role: BACKUP
-[2026-02-11 06:23:39] [INFO] Running in STANDALONE Mode (No Backup IP provided).
-[2026-02-11 06:23:39] [INFO] Service Started. Role: PRIMARY
-[2026-02-11 06:23:49] [AUTO] System Health Scan: OK.
-[2026-02-11 06:24:49] [AUTO] System Health Scan: OK.
-[2026-02-11 06:25:49] [AUTO] System Health Scan: OK.
-[2026-02-11 06:25:51] [TRANSACTION] Booked A1 (ZoneA) for WB72AB1234
-[2026-02-11 06:26:49] [AUTO] System Health Scan: OK.
-[2026-02-11 06:27:49] [AUTO] System Health Scan: OK.
-[2026-02-11 06:28:49] [AUTO] System Health Scan: OK.
-[2026-02-11 06:29:49] [AUTO] System Health Scan: OK.
+[06:40:14] [INFO] Service Started. Role: PRIMARY
+[06:40:42] [TRANSACTION] Booked A1 (ZoneA) for aWB89
+[06:41:00] [TRANSACTION] Booked A2 (ZoneA) for kk
+[06:41:23] [ADMIN] Slot Added: A11
+[06:41:40] [ADMIN] Zone Created: awdawd
+[06:42:03] [ADMIN] Slot Added: awd
+[06:47:05] [INFO] Service Started. Role: PRIMARY
+[06:47:23] [INFO] Service Started. Role: PRIMARY
+[06:47:46] [TRANSACTION] Booked A1 (ZoneA) for wad
+[06:48:06] [ADMIN] Slot Added: A5\
+[06:48:12] [TRANSACTION] Booked A2 (ZoneA) for awd
+[06:48:15] [TRANSACTION] Booked A5\ (ZoneA) for awdd
+[06:48:20] [TRANSACTION] Booked A3 (ZoneA) for awd
+[06:48:27] [TRANSACTION] Booked A4 (ZoneA) for awdd
+[06:48:35] [TRANSACTION] Released A2 (ZoneA)
+[06:48:39] [TRANSACTION] Released A3 (ZoneA)
+[06:48:41] [TRANSACTION] Released A4 (ZoneA)
+[06:48:44] [TRANSACTION] Released A1 (ZoneA)
+[06:48:48] [TRANSACTION] Released A5\ (ZoneA)
+[06:49:01] [ADMIN] Zone Created: ZoneC
+[06:49:20] [ADMIN] Slot Added: C1
+[06:49:28] [ADMIN] Slot Added: C2
+[06:55:59] [INFO] Service Started. Role: PRIMARY
+[06:56:30] [TRANSACTION] Booked B1 (ZoneB) for g
+[06:56:36] [TRANSACTION] Released B1 (ZoneB)
+[06:58:27] [INFO] Service Started. Role: PRIMARY
+[06:58:41] [TRANSACTION] Booked A1 (ZoneA) for h
+[06:58:43] [TRANSACTION] Released A1 (ZoneA)
