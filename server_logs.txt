@@ -1,0 +1,18 @@
+[2026-02-11 06:17:06] [INFO] Service Started. Role: PRIMARY
+[2026-02-11 06:17:16] [AUTO] System Health Scan: OK. Memory Usage: Normal.
+[2026-02-11 06:17:46] [AUTO] System Health Scan: OK. Memory Usage: Normal.
+[2026-02-11 06:18:16] [AUTO] System Health Scan: OK. Memory Usage: Normal.
+[2026-02-11 06:18:56] [INFO] Service Started. Role: PRIMARY
+[2026-02-11 06:19:06] [AUTO] System Health Scan: OK. Memory Usage: Normal.
+[2026-02-11 06:19:36] [AUTO] System Health Scan: OK. Memory Usage: Normal.
+[2026-02-11 06:19:47] [INFO] Service Started. Role: BACKUP
+[2026-02-11 06:23:39] [INFO] Running in STANDALONE Mode (No Backup IP provided).
+[2026-02-11 06:23:39] [INFO] Service Started. Role: PRIMARY
+[2026-02-11 06:23:49] [AUTO] System Health Scan: OK.
+[2026-02-11 06:24:49] [AUTO] System Health Scan: OK.
+[2026-02-11 06:25:49] [AUTO] System Health Scan: OK.
+[2026-02-11 06:25:51] [TRANSACTION] Booked A1 (ZoneA) for WB72AB1234
+[2026-02-11 06:26:49] [AUTO] System Health Scan: OK.
+[2026-02-11 06:27:49] [AUTO] System Health Scan: OK.
+[2026-02-11 06:28:49] [AUTO] System Health Scan: OK.
+[2026-02-11 06:29:49] [AUTO] System Health Scan: OK.
